@@ -25,7 +25,7 @@ input[type=date]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: poin
 <script type="text/babel">
 
 const KIOSK_URL = "https://cbf-equipment.github.io/kiosk/";
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxf7UaCAevFH9FyV8Fki4s187fpiPZLLOdTaYmAZ_PCY9cCJ-Q3MCgfxKSATzUB_mXVDw/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpISIbaAnbEHnSISXBUR0bsp4xr-4SI_0mct8TO_ge5CmiF1wuV2-TOBCkkeNcKB9Ftw/exec";
 
 const EQUIPMENT = [
   { name:"회전농축기-4",              code:"12CBF-12D3A3201",  fee:550,   unit:"Hour", type:"short" },
@@ -345,6 +345,8 @@ function App(){
   const [paymentMethod,setPaymentMethod]=React.useState("");
   const [isExternal,setIsExternal]=React.useState(false);
   const [taxEmail,setTaxEmail]=React.useState("");
+  const [contactEmail,setContactEmail]=React.useState("");
+  const [companyAddress,setCompanyAddress]=React.useState("");
   const [records,setRecords]=React.useState([]);
   const [submitting,setSubmitting]=React.useState(false);
 
@@ -376,7 +378,7 @@ function App(){
         ? true
         : (endOnly ? true : !!(eDate&&eTime)))
     : false;
-  const paymentValid = !feeKnown || !isExternal || (paymentMethod==="card" || (paymentMethod==="tax" && taxEmail.trim().length>0));
+  const paymentValid = !feeKnown || !isExternal || (paymentMethod==="card" || (paymentMethod==="tax" && taxEmail.trim().length>0 && contactEmail.trim().length>0 && companyAddress.trim().length>0));
   const filtered=EQUIPMENT.filter(e=>!eqSearch||e.name.includes(eqSearch)||dispName(e).includes(eqSearch));
   const last=records[records.length-1];
 
@@ -386,8 +388,8 @@ function App(){
     try{await fetch(SCRIPT_URL+"?"+new URLSearchParams(record).toString(),{method:"GET",mode:"no-cors"});}catch(e){}
     setSubmitting(false); setStep("done");
   };
-  const submitShort=()=>post({연도:new Date().getFullYear(),날짜:new Date().toLocaleDateString("ko-KR"),업체명:companyForSubmit(cu),담당자:wo,휴대폰:ph,장비명:eq.name,장비코드:eq.code,부과단위:eq.unit,사용시작일:todayStr(),사용시작시간:sST,사용종료일:todayStr(),사용종료시간:eST,사용시간_분:shMins(),사용량_L:isL?qty:"",단가:eq.fee,수수료:shFee(),구분:"이용",외부기업:isExternal?"Y":"",결제방법:isExternal?paymentLabel:"",이메일:(isExternal&&paymentMethod==="tax")?taxEmail:""});
-  const submitLong=()=>post({연도:new Date(sDate).getFullYear(),날짜:new Date(sDate).toLocaleDateString("ko-KR"),업체명:companyForSubmit(cu),담당자:wo,휴대폰:ph,장비명:eq.name,장비코드:eq.code,부과단위:eq.unit,사용시작일:sDate,사용시작시간:sTime,사용종료일:eDate||"미정",사용종료시간:eTime||"미정",사용시간_분:(eDate&&eTime)?lgMins():"미정",단가:eq.fee,수수료:(eDate&&eTime)?lgFee():"미정",구분:"이용",외부기업:(eDate&&eTime&&isExternal)?"Y":"",결제방법:(eDate&&eTime&&isExternal)?paymentLabel:"",이메일:(eDate&&eTime&&isExternal&&paymentMethod==="tax")?taxEmail:""});
+  const submitShort=()=>post({연도:new Date().getFullYear(),날짜:new Date().toLocaleDateString("ko-KR"),업체명:companyForSubmit(cu),담당자:wo,휴대폰:ph,장비명:eq.name,장비코드:eq.code,부과단위:eq.unit,사용시작일:todayStr(),사용시작시간:sST,사용종료일:todayStr(),사용종료시간:eST,사용시간_분:shMins(),사용량_L:isL?qty:"",단가:eq.fee,수수료:shFee(),구분:"이용",외부기업:isExternal?"Y":"",결제방법:isExternal?paymentLabel:"",담당자이메일:(isExternal&&paymentMethod==="tax")?contactEmail:"",계산서이메일:(isExternal&&paymentMethod==="tax")?taxEmail:"",회사주소:(isExternal&&paymentMethod==="tax")?companyAddress:""});
+  const submitLong=()=>post({연도:new Date(sDate).getFullYear(),날짜:new Date(sDate).toLocaleDateString("ko-KR"),업체명:companyForSubmit(cu),담당자:wo,휴대폰:ph,장비명:eq.name,장비코드:eq.code,부과단위:eq.unit,사용시작일:sDate,사용시작시간:sTime,사용종료일:eDate||"미정",사용종료시간:eTime||"미정",사용시간_분:(eDate&&eTime)?lgMins():"미정",단가:eq.fee,수수료:(eDate&&eTime)?lgFee():"미정",구분:"이용",외부기업:(eDate&&eTime&&isExternal)?"Y":"",결제방법:(eDate&&eTime&&isExternal)?paymentLabel:"",담당자이메일:(eDate&&eTime&&isExternal&&paymentMethod==="tax")?contactEmail:"",계산서이메일:(eDate&&eTime&&isExternal&&paymentMethod==="tax")?taxEmail:"",회사주소:(eDate&&eTime&&isExternal&&paymentMethod==="tax")?companyAddress:""});
 
   // 방법 B: 진행중인(종료일 미정) 이용 건 검색
   const searchOpenRecords=()=>{
@@ -401,8 +403,8 @@ function App(){
     document.body.appendChild(s);
   };
   // 방법 B: 선택한 기존 행을 찾아 종료 정보로 업데이트 (새 행 추가 X)
-  const submitClose=()=>post({action:"closeRecord",rowIndex:selectedOpen.rowIndex,업체명:selectedOpen.업체명,장비명:selectedOpen.장비명,장비코드:eq.code,사용종료일:eDate,종료시간:eTime,사용일수:closeDays(),수수료:closeFee(),구분:"이용",외부기업:isExternal?"Y":"",결제방법:isExternal?paymentLabel:"",이메일:(isExternal&&paymentMethod==="tax")?taxEmail:""});
-  const reset=()=>{setStep("home");setEq(null);setEqSearch("");setCu("");setWo("");setPh("");setSST("");setEST("");setQty("");setSDate(todayStr());setSTime("");setEDate("");setETime("");setEndOnly(false);setSubmitting(false);setCloseCompany("");setOpenRecords([]);setOpenLoading(false);setOpenSearched(false);setSelectedOpen(null);setPaymentMethod("");setTaxEmail("");setIsExternal(false);};
+  const submitClose=()=>post({action:"closeRecord",rowIndex:selectedOpen.rowIndex,업체명:selectedOpen.업체명,장비명:selectedOpen.장비명,장비코드:eq.code,사용종료일:eDate,종료시간:eTime,사용일수:closeDays(),수수료:closeFee(),구분:"이용",외부기업:isExternal?"Y":"",결제방법:isExternal?paymentLabel:"",담당자이메일:(isExternal&&paymentMethod==="tax")?contactEmail:"",계산서이메일:(isExternal&&paymentMethod==="tax")?taxEmail:"",회사주소:(isExternal&&paymentMethod==="tax")?companyAddress:""});
+  const reset=()=>{setStep("home");setEq(null);setEqSearch("");setCu("");setWo("");setPh("");setSST("");setEST("");setQty("");setSDate(todayStr());setSTime("");setEDate("");setETime("");setEndOnly(false);setSubmitting(false);setCloseCompany("");setOpenRecords([]);setOpenLoading(false);setOpenSearched(false);setSelectedOpen(null);setPaymentMethod("");setTaxEmail("");setIsExternal(false);setContactEmail("");setCompanyAddress("");};
 
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -593,7 +595,14 @@ function App(){
                       <input type="radio" name="paymentMethod" checked={paymentMethod==="tax"} onChange={()=>setPaymentMethod("tax")}/> 세금계산서 (이메일 발송)
                     </label>
                   </div>
-                  {paymentMethod==="tax"&&<input type="email" value={taxEmail} onChange={e=>setTaxEmail(e.target.value)} placeholder="계산서 받으실 이메일 주소" style={{...IS,marginBottom:0}}/>}
+                  {paymentMethod==="tax"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    <input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="담당자 이메일 주소" style={{...IS,marginBottom:0}}/>
+                    <input type="email" value={taxEmail} onChange={e=>setTaxEmail(e.target.value)} placeholder="계산서 받을 이메일 주소" style={{...IS,marginBottom:0}}/>
+                    <div>
+                      <div style={{fontSize:11,color:"#94a3b8",marginBottom:4}}>사업자등록증 상의 주소를 입력해주세요</div>
+                      <input type="text" value={companyAddress} onChange={e=>setCompanyAddress(e.target.value)} placeholder="회사 주소 (사업자등록증 기준)" style={{...IS,marginBottom:0}}/>
+                    </div>
+                  </div>}
                 </>}
               </div>}
               <div style={{display:"flex",gap:8}}><GBtn label="← 수정" onClick={()=>setStep("form")}/><PBtn green label={submitting?"저장 중...":"제출하기 ✓"} onClick={eq.type==="short"?submitShort:(endOnly?submitClose:submitLong)} disabled={submitting||!paymentValid}/></div>
